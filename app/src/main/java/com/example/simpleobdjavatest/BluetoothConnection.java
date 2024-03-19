@@ -115,7 +115,7 @@ public class BluetoothConnection implements AdapterConnection {
             Log.i(LOGGER_TAG, "Found bounded connections, size: " + bluetoothAdapter.getBondedDevices().size());
             BluetoothDevice adapter = null;
 
-            // 尋找與deviceName的設備
+            // find Bluetooth deviceName
             for (BluetoothDevice bondedDevice : bluetoothAdapter.getBondedDevices()) {
                 if (deviceName.equals(bondedDevice.getName())) {
                     adapter = bondedDevice;
