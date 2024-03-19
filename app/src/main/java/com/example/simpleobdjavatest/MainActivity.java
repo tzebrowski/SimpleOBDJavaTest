@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -39,11 +40,16 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // initialize BroadcastReceiver
+        IntentFilter filter = new IntentFilter(OBDBluetoothService.ACTION_OBD_STATE);
+        registerReceiver(connectionStateReceiver, filter);
 
         Log.i("MainActivity","Start OBD-II BluetoothService");
         Intent bsdIntent = new Intent(this, OBDBluetoothService.class);
@@ -54,5 +60,11 @@ public class MainActivity extends AppCompatActivity {
     public boolean onSupportNavigateUp() {
         finish();
         return true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(connectionStateReceiver);
     }
 }
