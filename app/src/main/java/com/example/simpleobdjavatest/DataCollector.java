@@ -1,5 +1,6 @@
 package com.example.simpleobdjavatest;
 
+import android.content.Intent;
 import android.util.Log;
 
 import org.apache.commons.collections4.MultiValuedMap;
@@ -13,6 +14,8 @@ import org.obd.metrics.pid.PidDefinition;
 import java.util.List;
 
 public final class DataCollector extends ReplyObserver<Reply<?>> {
+
+    private final OBDBluetoothService service;
 
     private final MultiValuedMap<Command, Reply<?>> data = new ArrayListValuedHashMap<Command, Reply<?>>();
 
@@ -30,6 +33,9 @@ public final class DataCollector extends ReplyObserver<Reply<?>> {
         return (List<ObdMetric>) metrics.get(pidDefinition);
     }
 
+    public DataCollector(OBDBluetoothService service) {
+        this.service = service;
+    }
 
     @Override
     public void onNext(Reply<?> reply) {
@@ -38,6 +44,14 @@ public final class DataCollector extends ReplyObserver<Reply<?>> {
 
         if (reply instanceof ObdMetric) {
             metrics.put(((ObdMetric) reply).getCommand().getPid(), (ObdMetric) reply);
+
+            ObdMetric metric = (ObdMetric) reply;
+            // Car Speed PID
+            if (metric.getCommand().getPid().getId() == 7116) {
+                Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
+                intent.putExtra(OBDBluetoothService.EXTRA_OBD_SPEED, metric.getValue().intValue());
+                service.sendBroadcast(intent);
+            }
         }
     }
 }

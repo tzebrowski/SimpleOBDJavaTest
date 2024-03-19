@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Intent;
 import android.util.Log;
 
 import org.obd.metrics.transport.AdapterConnection;
@@ -67,6 +68,10 @@ public class BluetoothConnection implements AdapterConnection {
                 input = socket.getInputStream();
                 output = socket.getOutputStream();
                 Log.i(LOGGER_TAG, "Successfully connected to the device: " + deviceName);
+
+                // Send Connected Broadcast
+                Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
+                intent.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 1);
             } else {
                 throw new IOException("Failed to connect to the device: " + deviceName);
             }

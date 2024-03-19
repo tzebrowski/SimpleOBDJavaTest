@@ -4,7 +4,10 @@ import android.annotation.SuppressLint;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.IBinder;
 
 import androidx.annotation.Nullable;
@@ -23,6 +26,7 @@ import org.obd.metrics.api.model.ProducerPolicy;
 import org.obd.metrics.api.model.Query;
 import org.obd.metrics.command.group.DefaultCommandGroup;
 import org.obd.metrics.diagnostic.RateType;
+import org.obd.metrics.transport.AdapterConnection;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -34,20 +38,63 @@ public class OBDBluetoothService extends Service {
     public static final String ACTION_OBD_STATE = "com.example.OBD.ACTION_OBD_STATE";
     public static final String EXTRA_OBD_STATE = "obd_state";
     public static final String EXTRA_OBD_SPEED = "obd_speed";
+    private BluetoothConnection bluetoothConnection;
+
+    private BroadcastReceiver connectionReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(ACTION_OBD_STATE)) {
+                int state = intent.getIntExtra(EXTRA_OBD_STATE, 0);
+                // Connected
+                if (state == 1) {
+                    // Run test()
+                    try {
+                        test();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    } catch (ExecutionException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+    };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        try {
-            test();
-        } catch (IOException | ExecutionException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            test();
+//        } catch (IOException | ExecutionException | InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
         return flags;
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        bluetoothConnection = new BluetoothConnection("OBD");
+        registerReceiver(connectionReceiver, new IntentFilter(ACTION_OBD_STATE));
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(connectionReceiver);
+    }
+
+    public void sendBroadcast(Intent intent) {
+        sendBroadcast(intent);
+    }
+
     public void test() throws IOException, InterruptedException, ExecutionException {
-//        AdapterConnection connection = BluetoothConnection.connect(getDeviceByName("OBD"));
-        var collector = new DataCollector();
+        AdapterConnection connection = bluetoothConnection;
+        // call connect()
+        connection.connect();
+        var collector = new DataCollector(this);
 
         final Pids pids = Pids
                 .builder()
@@ -79,7 +126,7 @@ public class OBDBluetoothService extends Service {
                 .protocol(Protocol.CAN_29)
                 .sequence(DefaultCommandGroup.INIT).build();
 
-//        workflow.start(connection, query, init, optional);
+        workflow.start(connection, query, init, optional);
 
         WorkflowFinalizer.finalizeAfter(workflow,25000);
 
