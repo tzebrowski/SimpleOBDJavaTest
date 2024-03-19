@@ -21,7 +21,14 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (OBDBluetoothService.ACTION_OBD_STATE.equals(intent.getAction())) {
+                int connect_state = intent.getIntExtra(OBDBluetoothService.EXTRA_OBD_STATE, 0);
                 int speed = intent.getIntExtra(OBDBluetoothService.EXTRA_OBD_SPEED, 0);
+
+                if (connect_state == 1) {
+                    binding.connectState.setText("Device Connected");
+                } else {
+                    binding.connectState.setText("Not Connect");
+                }
 
                 if (binding != null) {
                     if (speed != 0 ) {

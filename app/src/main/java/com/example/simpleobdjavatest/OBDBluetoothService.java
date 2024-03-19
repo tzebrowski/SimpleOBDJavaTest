@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutionException;
 public class OBDBluetoothService extends Service {
 
     public static final String ACTION_OBD_STATE = "com.example.OBD.ACTION_OBD_STATE";
+    public static final String EXTRA_OBD_STATE = "obd_state";
     public static final String EXTRA_OBD_SPEED = "obd_speed";
 
     @Override
