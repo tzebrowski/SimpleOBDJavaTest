@@ -40,21 +40,17 @@ public class OBDBluetoothService extends Service {
     public static final String EXTRA_OBD_SPEED = "obd_speed";
     private BluetoothConnection bluetoothConnection;
 
-    private BroadcastReceiver connectionReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver connectionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(ACTION_OBD_STATE)) {
+            if (Objects.equals(intent.getAction(), ACTION_OBD_STATE)) {
                 int state = intent.getIntExtra(EXTRA_OBD_STATE, 0);
                 // Connected
                 if (state == 1) {
                     // Run test()
                     try {
                         test();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    } catch (ExecutionException e) {
+                    } catch (IOException | InterruptedException | ExecutionException e) {
                         throw new RuntimeException(e);
                     }
                 }
@@ -78,13 +74,19 @@ public class OBDBluetoothService extends Service {
         super.onCreate();
         bluetoothConnection = new BluetoothConnection("OBD");
         registerReceiver(connectionReceiver, new IntentFilter(ACTION_OBD_STATE));
+
+        try {
+            test();
+        } catch (IOException | ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        unregisterReceiver(connectionReceiver);
-    }
+//    @Override
+//    public void onDestroy() {
+//        super.onDestroy();
+//        unregisterReceiver(connectionReceiver);
+//    }
 
     public void sendBroadcast(Intent intent) {
         sendBroadcast(intent);
