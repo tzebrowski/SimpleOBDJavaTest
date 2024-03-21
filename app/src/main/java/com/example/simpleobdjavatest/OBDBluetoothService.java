@@ -2,14 +2,11 @@ package com.example.simpleobdjavatest;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.IBinder;
 
 import androidx.annotation.Nullable;
 
-import org.assertj.core.api.Assertions;
 import org.obd.metrics.api.Workflow;
 import org.obd.metrics.api.model.AdaptiveTimeoutPolicy;
 import org.obd.metrics.api.model.Adjustments;
@@ -22,11 +19,9 @@ import org.obd.metrics.api.model.Pids;
 import org.obd.metrics.api.model.ProducerPolicy;
 import org.obd.metrics.api.model.Query;
 import org.obd.metrics.command.group.DefaultCommandGroup;
-import org.obd.metrics.diagnostic.RateType;
 
 import java.io.IOException;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 public class OBDBluetoothService extends Service {
@@ -46,7 +41,7 @@ public class OBDBluetoothService extends Service {
     }
 
     public void test() throws IOException, InterruptedException, ExecutionException {
-//        AdapterConnection connection = BluetoothConnection.connect(getDeviceByName("OBD"));
+        var connection = new BluetoothConnection("AA:BB:CC:11:22:33");
         var collector = new DataCollector();
 
         final Pids pids = Pids
@@ -79,32 +74,7 @@ public class OBDBluetoothService extends Service {
                 .protocol(Protocol.CAN_29)
                 .sequence(DefaultCommandGroup.INIT).build();
 
-//        workflow.start(connection, query, init, optional);
-
-        WorkflowFinalizer.finalizeAfter(workflow,25000);
-
-        var registry = workflow.getPidRegistry();
-
-        var intakePressure = registry.findBy(7005l);
-        double ratePerSec = workflow.getDiagnostics().rate().findBy(RateType.MEAN, intakePressure).get().getValue();
-
-        Assertions.assertThat(ratePerSec).isGreaterThanOrEqualTo(commandFrequency);
-    }
-
-    @SuppressLint("MissingPermission")
-    private BluetoothDevice getDeviceByName(String name) {
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (bluetoothAdapter != null) {
-            Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-            if (pairedDevices != null && !pairedDevices.isEmpty()) {
-                for (BluetoothDevice device : pairedDevices) {
-                    if (device.getName().equals(name)) {
-                        return device;
-                    }
-                }
-            }
-        }
-        return null;
+        workflow.start(connection, query, init, optional);
     }
 
     @Nullable

@@ -1,6 +1,10 @@
 package com.example.simpleobdjavatest;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -12,8 +16,10 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.simpleobdjavatest.databinding.ActivityMainBinding;
 
-public class MainActivity extends AppCompatActivity {
 
+import pub.devrel.easypermissions.EasyPermissions;
+
+public class MainActivity extends AppCompatActivity {
     private ActivityMainBinding binding;
 
     @SuppressLint("MissingPermission")
@@ -46,14 +52,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        EasyPermissions.requestPermissions(this,"I need BT permissions ",1,  Manifest.permission.BLUETOOTH_ADMIN,  Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_CONNECT);
 
-        // initialize BroadcastReceiver
         IntentFilter filter = new IntentFilter(OBDBluetoothService.ACTION_OBD_STATE);
         registerReceiver(connectionStateReceiver, filter);
 
         Log.i("MainActivity","Start OBD-II BluetoothService");
         Intent bsdIntent = new Intent(this, OBDBluetoothService.class);
         startService(bsdIntent);
+
     }
 
     @Override

@@ -3,7 +3,10 @@ package com.example.simpleobdjavatest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
+import android.os.ParcelUuid;
 import android.util.Log;
 
 import org.obd.metrics.transport.AdapterConnection;
@@ -16,62 +19,68 @@ import java.util.concurrent.TimeUnit;
 
 public class BluetoothConnection implements AdapterConnection {
     private static final String LOGGER_TAG = "BluetoothConnection";
-    private static final UUID RFCOMM_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
-    private final String deviceName;
+    private final String deviceAddress;
     private BluetoothSocket socket;
     private InputStream input;
     private OutputStream output;
 
-    public BluetoothConnection(String deviceName) {
-        this.deviceName = deviceName;
-        Log.i(LOGGER_TAG, "Created instance of BluetoothConnection with device: " + deviceName);
+    public BluetoothConnection(String deviceAddress) {
+        this.deviceAddress = deviceAddress;
+        Log.i(LOGGER_TAG, "Created instance of BluetoothConnection with device: " + deviceAddress);
     }
 
     @Override
     public void reconnect() {
         try {
-            Log.i(LOGGER_TAG, "Reconnecting to the device: " + deviceName);
+            Log.i(LOGGER_TAG, "Reconnecting to the device: " + deviceAddress);
             close();
             TimeUnit.MILLISECONDS.sleep(1000);
             connect();
-            Log.i(LOGGER_TAG, "Successfully reconnected to the device: " + deviceName);
+            Log.i(LOGGER_TAG, "Successfully reconnected to the device: " + deviceAddress);
         } catch (InterruptedException | IOException e) {
-            Log.e(LOGGER_TAG, "Error reconnecting to the device: " + deviceName, e);
+            Log.e(LOGGER_TAG, "Error reconnecting to the device: " + deviceAddress, e);
         }
     }
 
-    @SuppressLint("MissingPermission")
     @Override
     public void connect() throws IOException {
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        BluetoothDevice device = null;
+       try{
 
-        if (bluetoothAdapter != null) {
-            for (BluetoothDevice bondedDevice : bluetoothAdapter.getBondedDevices()) {
-                if (bondedDevice.getName() != null && bondedDevice.getName().contains("OBD")) {
-                    device = bondedDevice;
-                    Log.i(LOGGER_TAG, "OBD Device found: " + bondedDevice.getName());
-                    break;
+           BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            BluetoothDevice adapter = null;
+
+            if (bluetoothAdapter != null) {
+
+                for (BluetoothDevice bondedDevice : bluetoothAdapter.getBondedDevices()) {
+                    if (bondedDevice.getName() != null && bondedDevice.getAddress().equals(deviceAddress)) {
+                        adapter = bondedDevice;
+                        Log.i(LOGGER_TAG, "OBD Device found: " + bondedDevice.getName());
+                        break;
+                    }
                 }
-            }
 
-            if (device == null) {
-                throw new IOException("Device not found: " + deviceName);
-            }
+                if (null == adapter) {
+                    throw new IOException("Device not found: " + deviceAddress);
+                }
 
-            socket = device.createRfcommSocketToServiceRecord(RFCOMM_UUID);
-            socket.connect();
+                final ParcelUuid[] uuids = adapter.getUuids();
+                final UUID uuid = uuids[0].getUuid();
+                socket = adapter.createInsecureRfcommSocketToServiceRecord(uuid);
+                socket.connect();
 
-            if (socket.isConnected()) {
-                input = socket.getInputStream();
-                output = socket.getOutputStream();
-                Log.i(LOGGER_TAG, "Successfully connected to the device: " + deviceName);
+                if (socket.isConnected()) {
+                    input = socket.getInputStream();
+                    output = socket.getOutputStream();
+                    Log.e(LOGGER_TAG, "Successfully connected to the adapter: " + deviceAddress);
+                } else {
+                    throw new IOException("Failed to connect to the adapter: " + deviceAddress);
+                }
             } else {
-                throw new IOException("Failed to connect to the device: " + deviceName);
+                throw new IOException("BluetoothAdapter not found");
             }
-        } else {
-            throw new IOException("BluetoothAdapter not found");
+        }catch (SecurityException e){
+            Log.e(LOGGER_TAG,"Failed to connect to BT due to missing permissions.",e);
         }
     }
 
@@ -87,9 +96,9 @@ public class BluetoothConnection implements AdapterConnection {
             if (socket != null) {
                 socket.close();
             }
-            Log.i(LOGGER_TAG, "Socket for the device: " + deviceName + " is closed.");
+            Log.i(LOGGER_TAG, "Socket for the device: " + deviceAddress + " is closed.");
         } catch (IOException e) {
-            Log.e(LOGGER_TAG, "Error closing the socket: " + deviceName, e);
+            Log.e(LOGGER_TAG, "Error closing the socket: " + deviceAddress, e);
         }
     }
 
@@ -102,49 +111,4 @@ public class BluetoothConnection implements AdapterConnection {
     public InputStream openInputStream() {
         return input;
     }
-
-    @SuppressLint("MissingPermission")
-    private void connectToDevice() {
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (bluetoothAdapter == null) {
-            Log.i(LOGGER_TAG, "Bluetooth not supported on this device");
-            return;
-        }
-
-        try {
-            Log.i(LOGGER_TAG, "Found bounded connections, size: " + bluetoothAdapter.getBondedDevices().size());
-            BluetoothDevice adapter = null;
-
-            // find Bluetooth deviceName
-            for (BluetoothDevice bondedDevice : bluetoothAdapter.getBondedDevices()) {
-                if (deviceName.equals(bondedDevice.getName())) {
-                    adapter = bondedDevice;
-                    break;
-                }
-            }
-
-            if (adapter != null) {
-                Log.i(LOGGER_TAG, "Opening connection to bounded device: " + adapter.getName());
-                socket = adapter.createRfcommSocketToServiceRecord(RFCOMM_UUID);
-                socket.connect();
-                Log.i(LOGGER_TAG, "Doing socket connect for: " + adapter.getName());
-
-                if (socket.isConnected()) {
-                    Log.i(LOGGER_TAG, "Successfully established connection for: " + adapter.getName());
-                    input = socket.getInputStream();
-                    output = socket.getOutputStream();
-                    Log.i(LOGGER_TAG, "Successfully opened the sockets to device: " + adapter.getName());
-                } else {
-                    Log.e(LOGGER_TAG, "Failed to connect to the device: " + adapter.getName());
-                }
-            } else {
-                Log.e(LOGGER_TAG, "Device not found: " + deviceName);
-            }
-        } catch (IOException e) {
-            Log.e(LOGGER_TAG, "Failed to connect to the device: " + deviceName, e);
-        } catch (SecurityException e) {
-            Log.e(LOGGER_TAG, "Security exception: permissions might be missing.", e);
-        }
-    }
-
 }
