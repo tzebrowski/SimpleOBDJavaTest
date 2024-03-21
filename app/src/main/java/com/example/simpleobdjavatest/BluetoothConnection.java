@@ -1,11 +1,8 @@
 package com.example.simpleobdjavatest;
 
-import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
 import android.os.ParcelUuid;
 import android.util.Log;
 
@@ -45,9 +42,9 @@ public class BluetoothConnection implements AdapterConnection {
 
     @Override
     public void connect() throws IOException {
-       try{
+        try {
 
-           BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
             BluetoothDevice adapter = null;
 
             if (bluetoothAdapter != null) {
@@ -66,7 +63,7 @@ public class BluetoothConnection implements AdapterConnection {
 
                 final ParcelUuid[] uuids = adapter.getUuids();
                 final UUID uuid = uuids[0].getUuid();
-                socket = adapter.createInsecureRfcommSocketToServiceRecord(uuid);
+                socket = adapter.createRfcommSocketToServiceRecord(uuid);
                 socket.connect();
 
                 if (socket.isConnected()) {
@@ -79,8 +76,8 @@ public class BluetoothConnection implements AdapterConnection {
             } else {
                 throw new IOException("BluetoothAdapter not found");
             }
-        }catch (SecurityException e){
-            Log.e(LOGGER_TAG,"Failed to connect to BT due to missing permissions.",e);
+        } catch (SecurityException e) {
+            Log.e(LOGGER_TAG, "Failed to connect to BT due to missing permissions.", e);
         }
     }
 
