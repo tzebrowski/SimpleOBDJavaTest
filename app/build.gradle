@@ -35,6 +35,7 @@ android {
     }
     buildFeatures {
         compose true
+        //noinspection DataBindingWithoutKapt
         dataBinding true
     }
     composeOptions {
@@ -97,11 +98,6 @@ dependencies {
     implementation "androidx.car.app:app:1.2.0"
     implementation "com.github.pires:obd-java-api:1.0"
     annotationProcessor 'androidx.room:room-compiler:2.6.1'
-
-    //noinspection GradleCompatible
-//    implementation 'com.android.support:appcompat-v7:28.0.0'
-    //noinspection GradleCompatible
-//    implementation 'com.android.support:design:28.0.0'
 
     // OBD-II
     implementation 'io.github.tzebrowski:obd-metrics:9.23.5'

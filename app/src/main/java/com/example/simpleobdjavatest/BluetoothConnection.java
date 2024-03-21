@@ -12,6 +12,7 @@ import org.obd.metrics.transport.AdapterConnection;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -61,20 +62,31 @@ public class BluetoothConnection implements AdapterConnection {
                 throw new IOException("Device not found: " + deviceName);
             }
 
-            socket = device.createRfcommSocketToServiceRecord(RFCOMM_UUID);
-            socket.connect();
-
-            if (socket.isConnected()) {
-                input = socket.getInputStream();
-                output = socket.getOutputStream();
-                Log.i(LOGGER_TAG, "Successfully connected to the device: " + deviceName);
-
-                // Send Connected Broadcast
-                Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
-                intent.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 1);
-            } else {
-                throw new IOException("Failed to connect to the device: " + deviceName);
+//            socket = device.createRfcommSocketToServiceRecord(RFCOMM_UUID);
+            try {
+                socket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(device, 1);
+            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                throw new RuntimeException(e);
             }
+
+            if (socket != null) {
+                socket.connect();
+
+                if (socket.isConnected()) {
+                    input = socket.getInputStream();
+                    output = socket.getOutputStream();
+                    Log.i(LOGGER_TAG, "Successfully connected to the device: " + deviceName);
+
+                    // Send Connected Broadcast
+                    Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
+                    intent.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 1);
+                } else {
+                    throw new IOException("Failed to connect to the device: " + deviceName);
+                }
+            }
+
+
+
         } else {
             throw new IOException("BluetoothAdapter not found");
         }
@@ -106,6 +118,32 @@ public class BluetoothConnection implements AdapterConnection {
     @Override
     public InputStream openInputStream() {
         return input;
+    }
+
+    @SuppressLint("MissingPermission")
+    public void connectWithRetry(int retryCount) throws IOException {
+        final int maxTries = retryCount;
+        int attempt = 0;
+        while (true) {
+            try {
+                Log.i("BluetoothConnection","Try OBD-II Connection");
+                attempt++;
+                connect(); // Try Connect
+                break; // Connected, break while
+            } catch (IOException e) {
+                if (attempt > maxTries) {
+                    Log.i("BluetoothConnection","OBD-II connect fail");
+                    throw e; // Fail
+                }
+                // Wait some time before retrying
+                try {
+                    Log.i("BluetoothConnection","retry connect");
+                    Thread.sleep(2000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt(); // stay disconnected
+                }
+            }
+        }
     }
 
     @SuppressLint("MissingPermission")

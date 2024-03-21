@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.IBinder;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -58,13 +59,32 @@ public class OBDBluetoothService extends Service {
         }
     };
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        bluetoothConnection = new BluetoothConnection("OBDII");
+        registerReceiver(connectionReceiver, new IntentFilter(ACTION_OBD_STATE));
+
 //        try {
 //            test();
 //        } catch (IOException | ExecutionException | InterruptedException e) {
 //            throw new RuntimeException(e);
 //        }
+
+        new Thread(() -> {
+            try {
+                Log.i("OBDBluetoothService","Try OBD-II Connection");
+                bluetoothConnection = new BluetoothConnection("OBDII");
+                bluetoothConnection.connectWithRetry(3); // Try 3 times
+
+                Intent intent2 = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
+                intent2.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 1);
+                test();
+            } catch (IOException | ExecutionException | InterruptedException e) {
+                Intent intent3 = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
+                intent3.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 0);
+            }
+        }).start();
         return flags;
     }
 
@@ -75,11 +95,26 @@ public class OBDBluetoothService extends Service {
         bluetoothConnection = new BluetoothConnection("OBD");
         registerReceiver(connectionReceiver, new IntentFilter(ACTION_OBD_STATE));
 
-        try {
-            test();
-        } catch (IOException | ExecutionException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+//        try {
+//            test();
+//        } catch (IOException | ExecutionException | InterruptedException e) {
+//            throw new RuntimeException(e);
+//        }
+
+        new Thread(() -> {
+            try {
+                Log.i("OBDBluetoothService","Try OBD-II Connection");
+                bluetoothConnection = new BluetoothConnection("OBDII");
+                bluetoothConnection.connectWithRetry(3); // Try 3 times
+
+                Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
+                intent.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 1);
+                test();
+            } catch (IOException | ExecutionException | InterruptedException e) {
+                Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
+                intent.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 0);
+            }
+        }).start();
     }
 
 //    @Override
