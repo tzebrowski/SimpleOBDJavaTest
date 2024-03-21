@@ -12,7 +12,6 @@ import org.obd.metrics.transport.AdapterConnection;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -43,6 +42,55 @@ public class BluetoothConnection implements AdapterConnection {
         }
     }
 
+//    @SuppressLint("MissingPermission")
+//    @Override
+//    public void connect() throws IOException {
+//        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+//        BluetoothDevice device = null;
+//
+//        if (bluetoothAdapter != null) {
+//            for (BluetoothDevice bondedDevice : bluetoothAdapter.getBondedDevices()) {
+//                if (bondedDevice.getName() != null && bondedDevice.getName().contains("OBD")) {
+//                    device = bondedDevice;
+//                    Log.i(LOGGER_TAG, "OBD Device found: " + bondedDevice.getName());
+//                    break;
+//                }
+//            }
+//
+//            if (device == null) {
+//                throw new IOException("Device not found: " + deviceName);
+//            }
+//
+////            socket = device.createRfcommSocketToServiceRecord(RFCOMM_UUID);
+//            try {
+//                socket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(device, 1);
+//            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+//                throw new RuntimeException(e);
+//            }
+//
+//            if (socket != null) {
+//                socket.connect();
+//
+//                if (socket.isConnected()) {
+//                    input = socket.getInputStream();
+//                    output = socket.getOutputStream();
+//                    Log.i(LOGGER_TAG, "Successfully connected to the device: " + deviceName);
+//
+//                    // Send Connected Broadcast
+//                    Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
+//                    intent.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 1);
+//                } else {
+//                    throw new IOException("Failed to connect to the device: " + deviceName);
+//                }
+//            }
+//
+//
+//
+//        } else {
+//            throw new IOException("BluetoothAdapter not found");
+//        }
+//    }
+
     @SuppressLint("MissingPermission")
     @Override
     public void connect() throws IOException {
@@ -62,31 +110,21 @@ public class BluetoothConnection implements AdapterConnection {
                 throw new IOException("Device not found: " + deviceName);
             }
 
-//            socket = device.createRfcommSocketToServiceRecord(RFCOMM_UUID);
-            try {
-                socket = (BluetoothSocket) device.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(device, 1);
-            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new RuntimeException(e);
+            // find BluetoothDevice object to connect
+            socket = device.createRfcommSocketToServiceRecord(RFCOMM_UUID);
+            socket.connect();
+
+            if (socket.isConnected()) {
+                input = socket.getInputStream();
+                output = socket.getOutputStream();
+                Log.i(LOGGER_TAG, "Successfully connected to the device: " + device.getName());
+
+                // 發送連線成功的廣播
+                Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
+                intent.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 1);
+            } else {
+                throw new IOException("Failed to connect to the device: " + device.getName());
             }
-
-            if (socket != null) {
-                socket.connect();
-
-                if (socket.isConnected()) {
-                    input = socket.getInputStream();
-                    output = socket.getOutputStream();
-                    Log.i(LOGGER_TAG, "Successfully connected to the device: " + deviceName);
-
-                    // Send Connected Broadcast
-                    Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
-                    intent.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 1);
-                } else {
-                    throw new IOException("Failed to connect to the device: " + deviceName);
-                }
-            }
-
-
-
         } else {
             throw new IOException("BluetoothAdapter not found");
         }

@@ -105,7 +105,7 @@ public class OBDBluetoothService extends Service {
             try {
                 Log.i("OBDBluetoothService","Try OBD-II Connection");
                 bluetoothConnection = new BluetoothConnection("OBDII");
-                bluetoothConnection.connectWithRetry(3); // Try 3 times
+                bluetoothConnection.connectWithRetry(10); // Try 3 times
 
                 Intent intent = new Intent(OBDBluetoothService.ACTION_OBD_STATE);
                 intent.putExtra(OBDBluetoothService.EXTRA_OBD_STATE, 1);
